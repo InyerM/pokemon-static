@@ -5,17 +5,19 @@ import { GetStaticPaths } from 'next'
 
 import confetti from "canvas-confetti"
 
+import { pokeApi } from "../../api"
 import { Layout } from "../../components/layouts"
-import { Pokemon } from "../../interfaces"
+import { Pokemon, PokemonList } from "../../interfaces"
 import { capitalize } from '../../libs';
-import { getPokemonInfo, localFavorites } from "../../utils"
+import { localFavorites } from "../../utils"
 import { PokemonSingleCard } from "../../components/pokemon"
+import { getPokemonInfo } from '../../utils/getPokemonInfo';
 
 interface Props {
   pokemon: Pokemon
 }
 
-const Pokemon: NextPage<Props> = ({ pokemon }) => {
+const PokemonByName: NextPage<Props> = ({ pokemon }) => {
   const [isInFavorites, setIsInFavorites] = useState<boolean>(localFavorites.existInFavorites(pokemon.id))
 
   const toggleFavorite = () => {
@@ -40,15 +42,17 @@ const Pokemon: NextPage<Props> = ({ pokemon }) => {
 
 
 export const getStaticPaths: GetStaticPaths = async (ctx) => {
-  const pokemon151 = [
-    ...Array(151)].map((_, index) => {
-      return {
-        params: {
-          id: (index + 1).toString()
-        }
+  const { data } = await pokeApi.get<PokemonList>('/pokemon?limit=151')
+  const { results } = data
+
+  const pokemon151 = results.map((pokemon) => {
+    return {
+      params: {
+        name: pokemon.name
       }
-    })
-  
+    }
+  })
+
   return {
     paths: pokemon151,
     fallback: false
@@ -56,15 +60,14 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
 }
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const { id } = params as { id: string }
-  const pokemon = await getPokemonInfo(id)
-
+  const { name } = params as { name: string }
+  const pokemon = await getPokemonInfo(name)
   return {
     props: {
-      pokemon
+      pokemon,
     }
   }
 }
 
 
-export default Pokemon
+export default PokemonByName
